@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dino Game</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    canvas {
+      display: block;
+      background-color: black;
+      border: 2px solid white;
+    }
+
+    .game-over {
+      color: white;
+      font-size: 50px;
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .restart-button {
+      display: none;
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 30px;
+      padding: 10px 20px;
+      background-color: white;
+      border: none;
+      cursor: pointer;
+      color: black;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-over">Game Over!</div>
+  <button class="restart-button" onclick="restartGame()">Restart</button>
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gameOverElement = document.querySelector('.game-over');
+    const restartButton = document.querySelector('.restart-button');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const dinoWidth = 50;
+    const dinoHeight = 50;
+    const gravity = 1;
+    const jumpStrength = -15;
+
+    let dinoY = canvas.height - dinoHeight - 20;
+    let dinoVelocity = 0;
+    let isJumping = false;
+    let isGameOver = false;
+
+    let obstacles = [];
+    let score = 0;
+
+    class Obstacle {
+      constructor(x) {
+        this.x = x;
+        this.width = dinoWidth * 0.1; // Obstacle width is 10% of the dino width
+        this.height = dinoHeight * 0.5; // Obstacle height is 50% of the dino height
+      }
+
+      update() {
+        this.x -= 5;
+        if (this.x + this.width < 0) {
+          obstacles.shift();
+        }
+      }
+
+      draw() {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(this.x, canvas.height - this.height - 20, this.width, this.height);
+      }
+
+      checkCollision(dinoX, dinoY) {
+        if (
+          dinoX + dinoWidth > this.x &&
+          dinoX < this.x + this.width &&
+          dinoY + dinoHeight > canvas.height - this.height - 20
+        ) {
+          isGameOver = true;
+          gameOverElement.style.display = 'block';
+          restartButton.style.display = 'block';
+        }
+      }
+    }
+
+    function createObstacle() {
+      obstacles.push(new Obstacle(canvas.width));
+    }
+
+    function drawDino() {
+      // Dino shape (head and body)
+      ctx.fillStyle = 'white';
+      ctx.fillRect(50, dinoY, dinoWidth, dinoHeight); // Body
+
+      // Dino head
+      ctx.beginPath();
+      ctx.arc(50 + dinoWidth / 4, dinoY - 10, 10, 0, Math.PI * 2, false);
+      ctx.fill();
+    }
+
+    function gameLoop() {
+      if (isGameOver) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      dinoY += dinoVelocity;
+      dinoVelocity += gravity;
+
+      if (dinoY > canvas.height - dinoHeight - 20) {
+        dinoY = canvas.height - dinoHeight - 20;
+        dinoVelocity = 0;
+        isJumping = false;
+      }
+
+      drawDino();
+
+      if (Math.random() < 0.02) createObstacle(); // Lower chance of obstacle generation
+
+      obstacles.forEach((obstacle) => {
+        obstacle.update();
+        obstacle.draw();
+        obstacle.checkCollision(50, dinoY);
+      });
+
+      score++;
+      ctx.fillStyle = 'white';
+      ctx.font = '20px Arial';
+      ctx.fillText('Score: ' + score, 10, 30);
+
+      if (!isGameOver) requestAnimationFrame(gameLoop);
+    }
+
+    function jump() {
+      if (!isJumping) {
+        dinoVelocity = jumpStrength;
+        isJumping = true;
+      }
+    }
+
+    function restartGame() {
+      isGameOver = false;
+      score = 0;
+      dinoY = canvas.height - dinoHeight - 20;
+      dinoVelocity = 0;
+      obstacles = [];
+      gameOverElement.style.display = 'none';
+      restartButton.style.display = 'none';
+      gameLoop();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.key === ' ') {
+        jump();
+      }
+    });
+
+    window.onload = function () {
+      gameLoop();
+    };
+  </script>
+</body>
+</html>
